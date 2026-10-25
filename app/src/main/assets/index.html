@@ -1,0 +1,57 @@
+<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<style>
+*{box-sizing:border-box}body{margin:0;background:#0E1726;color:#F2F5FA;font-family:sans-serif;padding:16px 16px 90px}
+h1{font-size:22px;margin:0 0 12px}.c{background:#16233A;border-radius:16px;padding:16px;margin-bottom:12px;line-height:1.7}.m{color:#A9B8CF;font-size:13px}
+.b{display:block;width:100%;min-height:48px;border:0;border-radius:12px;background:#FFB020;color:#0E1726;font:800 16px sans-serif;margin-top:10px;text-align:center;text-decoration:none;line-height:48px;padding:0}
+.b.g{background:transparent;border:1px solid #A9B8CF;color:#F2F5FA}.b.w{background:#25D366}
+input,select{width:100%;min-height:48px;margin-top:6px;border:1px solid #24344F;border-radius:12px;background:#0E1726;color:#F2F5FA;padding:0 12px;font:700 16px sans-serif}
+.r{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-top:1px solid #24344F}
+nav{position:fixed;bottom:0;left:0;right:0;display:flex;gap:4px;background:#16233A;padding:6px}nav button{flex:1;min-height:46px;border:0;border-radius:12px;background:none;color:#A9B8CF;font:700 13px sans-serif}nav .on{background:#FFB020;color:#0E1726}
+#t{position:fixed;bottom:80px;left:16px;right:16px;background:#FFB020;color:#0E1726;border-radius:12px;padding:12px;text-align:center;font-weight:700;display:none}
+</style></head><body><div id="v"></div><div id="t"></div><nav id="n"></nav>
+<script>
+const A=window.Android,$=id=>document.getElementById(id),today=()=>new Date().toISOString().slice(0,10);
+let S=JSON.parse(localStorage.s||'{"c":[],"r":[],"d":[]}'),T,tab='h';
+const sv=()=>localStorage.s=JSON.stringify(S);
+window.onerror=(m,u,l)=>A.logError(m+' @'+l);
+const toast=m=>{const t=$('t');t.textContent=m;t.style.display='block';setTimeout(()=>t.style.display='none',2800)};
+try{T=JSON.parse(A.asset('tariffs.json'))}catch(e){A.logError('tariffs '+e)}
+A.get('https://raw.githubusercontent.com/oneshoot5010/shariha-electricity/main/app/src/main/assets/tariffs.json','gotT');
+function gotT(x){try{T=JSON.parse(x);if(tab=='h')go('h')}catch(e){}}
+function cost(k){let c=0,p=0;for(const[u,r]of T.tiers){if(k<=u)return c+(k-p)*r;c+=(u-p)*r;p=u}return k<=T.flat[0][0]?k*T.flat[0][1]:k*T.flat[1][1]}
+function tierN(k){const i=T.tiers.findIndex(x=>k<=x[0]);return i<0?(k<=T.flat[0][0]?6:7):i+1}
+function mk(){const r=S.r;if(r.length>1){const a=r[0],b=r[r.length-1],d=(new Date(b.t)-new Date(a.t))/864e5;if(d>=1&&b.v>a.v)return(b.v-a.v)/d*30}
+const s=S.d.reduce((x,y)=>x+y.w*y.h*30/1000,0);return s||null}
+function ds(){const m=S.r.length>1&&mk();if(m)return cost(m)/30;const c=S.c;if(c.length<2)return null;
+const d=(new Date(c[c.length-1].t)-new Date(c[0].t))/864e5,s=c.slice(0,-1).reduce((x,y)=>x+y.a,0);return d>0?s/d:null}
+function home(){const c=S.c,e=ds(),m=mk();let h='<h1>شريحة الكهربا</h1>';
+if(!c.length||!e)h+='<div class="c">سجّل شحنتين على الأقل من تبويب "الشحن" وأنا أقولك الكارت هيخلص إمتى.</div>';
+else{const l=c[c.length-1],since=(Date.now()-new Date(l.t))/864e5,bal=Math.max(0,l.a-since*e),left=bal/e,
+f=x=>new Date(Date.now()+x*864e5).toLocaleDateString('ar-EG',{day:'numeric',month:'long'});
+h+=`<div class="c"><div class="m">رصيد الكارت التقريبي</div><div style="font-size:44px;font-weight:800">${bal.toFixed(0)} ج</div><div class="m" style="margin-top:8px">هيخلص تقريباً بين</div><div style="font-size:20px;font-weight:800">${f(left*.85)} و ${f(left*1.15)}</div><div class="m" style="margin-top:6px">${S.r.length>1?'الدقة كويسة':'الدقة متوسطة، صوّر العداد عشان تزيد'}</div></div>`}
+if(m)h+=`<div class="c"><div class="m">استهلاكك في الشهر تقريباً</div><div style="font-size:26px;font-weight:800">${m.toFixed(0)} ك.و.س</div><div>الشريحة ${tierN(m)} · الفاتورة حوالي ${cost(m).toFixed(0)} ج</div></div>`;
+return h+'<button class="b g" onclick="A.scan()">صوّر العداد</button>'}
+function chg(){return `<h1>الشحن</h1><div class="c"><label class="m">مبلغ الشحنة (ج)<input id="am" type="number" inputmode="decimal"></label><button class="b" onclick="addC()">سجّل الشحنة</button></div>
+<div class="c"><label class="m">قراءة العداد<input id="rv" type="number" inputmode="numeric"></label><button class="b" onclick="addR()">سجّل القراءة</button><button class="b g" onclick="A.scan()">صوّر العداد</button></div>
+<div class="c"><div class="m">الشحنات</div>${S.c.slice().reverse().map(x=>`<div class="r"><span class="m">${x.t}</span><b>${x.a} ج</b></div>`).join('')||'<div class="m">لسه مفيش</div>'}</div>
+<div class="c"><div class="m">القراءات</div>${S.r.slice().reverse().map(x=>`<div class="r"><span class="m">${x.t}</span><b>${x.v}</b></div>`).join('')||'<div class="m">لسه مفيش</div>'}</div>`}
+function addC(){const a=+$('am').value;if(!a)return toast('اكتب المبلغ');S.c.push({t:today(),a});sv();go('c');toast('اتسجلت الشحنة')}
+function addR(){const v=+$('rv').value;if(!v)return toast('اكتب القراءة');S.r.push({t:today(),v});sv();go('c');toast('اتسجلت القراءة')}
+function onScan(v){go('c');if(v){$('rv').value=v;toast('قريت '+v+'، راجعها وبعدين دوس سجّل')}else toast('معرفتش أقرا الرقم، جرّب تاني أو اكتبه بإيدك')}
+const P=[['تكييف',1200],['سخان',2000],['تلاجة',120],['غسالة',500],['تلفزيون',100],['مروحة',60],['لمبات',100]];
+function dev(){return `<h1>الأجهزة</h1><div class="c"><select id="pp" onchange="$('pw').value=this.value">${P.map(p=>`<option value="${p[1]}">${p[0]}</option>`).join('')}</select><label class="m">الوات<input id="pw" type="number" value="1200"></label><label class="m">ساعات في اليوم<input id="ph" type="number" value="4"></label><button class="b" onclick="addD()">ضيف الجهاز</button></div>`+
+S.d.map((x,i)=>`<div class="c"><div class="r" style="border:0;padding:0"><b>${x.n}</b><b>${(x.w*x.h*30/1000).toFixed(0)} ك.و.س</b></div><div class="m">${x.w} واط × ${x.h} ساعة</div><button class="b g" onclick="delD(${i})">امسح</button></div>`).join('')}
+function addD(){const w=+$('pw').value,h=+$('ph').value;if(!w||!h)return toast('اكتب الوات والساعات');S.d.push({n:$('pp').selectedOptions[0].text,w,h});sv();go('d')}
+function delD(i){S.d.splice(i,1);sv();go('d')}
+function set(){return `<h1>الإعدادات</h1><div class="c"><div class="m">الإصدار ${A.version()}</div><button class="b" onclick="upd()">حدّث التطبيق</button><div id="us" class="m" style="margin-top:8px"></div></div><div class="c"><button class="b g" onclick="cp()">انسخ تقرير الأخطاء</button><button class="b g" onclick="go('hp')">اشرح لي التطبيق</button><button class="b g" onclick="go('dv')">عن المطور</button></div>`}
+function upd(){$('us').textContent='بدوّر على تحديث...';A.get('https://api.github.com/repos/oneshoot5010/shariha-electricity/releases/latest','gotU')}
+function gotU(x){const u=$('us');try{const j=JSON.parse(x),n=parseInt(j.tag_name.replace(/\D/g,''));if(n>A.versionCode()){u.textContent='لقيت تحديث، بنزّله...';A.update(j.assets[0].browser_download_url)}else u.textContent='إنت على آخر إصدار'}catch(e){u.textContent='معرفتش أتأكد من التحديث، جرّب بعد شوية'}}
+function onUpd(m){const u=$('us');if(u)u.textContent=m}
+function cp(){A.copy(A.errors()||'مفيش أخطاء مسجلة');toast('تقرير الأخطاء اتنسخ')}
+function help(){return `<h1>التطبيق بيشتغل إزاي</h1><div class="c"><b>1. الشحن</b><br>كل ما تشحن الكارت اكتب المبلغ. بعد شحنتين التطبيق يعرف بتصرف كام في اليوم ويقولك الكارت هيخلص إمتى.<br><br><b>2. صوّر العداد</b><br>اختياري. صورة للعداد بتقرا الرقم لوحدها وتخلّي التوقع أدق، وتعرفك إنت في أنهي شريحة.<br><br><b>3. الأجهزة</b><br>ضيف أجهزتك وساعات تشغيلها، وشوف مين أكتر واحد بياكل في الفاتورة.<br><br><b>4. التحديث</b><br>من الإعدادات دوس "حدّث التطبيق" وهيتحدّث من غير ما تفتح جيت هب.<br><br><b>5. لو حصل خطأ</b><br>من الإعدادات دوس "انسخ تقرير الأخطاء" وابعته للمطور.<br><br><span class="m">الأرقام تقديرية ومش هتطابق الفاتورة بالملّي.</span></div>`}
+function devp(){return `<h1>عن المطور</h1><div class="c" style="text-align:center"><b dir="ltr" style="font-size:20px">Mohamed Hassan Taha</b><div class="m">مطوّر تطبيقات أندرويد</div></div><a class="b w" href="https://wa.me/201044947639">كلمني على واتساب</a><div class="m" dir="ltr" style="text-align:center;margin-top:6px">+201044947639</div><a class="b g" href="https://github.com/oneshoot5010">افتح GitHub</a><div class="m" dir="ltr" style="text-align:center;margin-top:6px">github.com/oneshoot5010</div>`}
+const V={h:home,c:chg,d:dev,s:set,hp:help,dv:devp},N=[['h','الرئيسية'],['c','الشحن'],['d','الأجهزة'],['s','الإعدادات']];
+function go(x){tab=x;try{$('v').innerHTML=V[x]()}catch(e){A.logError('render '+x+' '+e)}
+$('n').innerHTML=N.map(n=>`<button class="${n[0]==x||(n[0]=='s'&&(x=='hp'||x=='dv'))?'on':''}" onclick="go('${n[0]}')">${n[1]}</button>`).join('')}
+go('h')
+</script></body></html>

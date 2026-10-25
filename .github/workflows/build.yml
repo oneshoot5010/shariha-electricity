@@ -1,0 +1,51 @@
+name: build
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  compile:
+    name: المرحلة 1 - بناء
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.9"
+      - run: gradle assembleRelease -PverCode=${{ github.run_number }} --no-daemon --stacktrace
+      - uses: actions/upload-artifact@v4
+        with:
+          name: unsigned
+          path: app/build/outputs/apk/release/app-release-unsigned.apk
+  sign:
+    name: المرحلة 2 - توقيع ورفع
+    needs: compile
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: unsigned
+      - name: sign
+        env:
+          KS_B64: ${{ secrets.KS_B64 }}
+          KS_PASS: ${{ secrets.KS_PASS }}
+        run: |
+          BT=$(ls -d $ANDROID_HOME/build-tools/* | sort -V | tail -1)
+          echo "$KS_B64" | base64 -d > ks.jks
+          $BT/zipalign -p 4 app-release-unsigned.apk aligned.apk
+          $BT/apksigner sign --ks ks.jks --ks-pass pass:$KS_PASS --out shariha.apk aligned.apk
+      - uses: actions/upload-artifact@v4
+        with:
+          name: shariha-apk
+          path: shariha.apk
+      - name: release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+        run: gh release create v${{ github.run_number }} shariha.apk --title "v${{ github.run_number }}" --notes "تحديث جديد"
