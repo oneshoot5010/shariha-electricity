@@ -5,6 +5,8 @@ import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Intent
 import android.net.Uri
+import android.graphics.Color
+import android.os.Build
 import android.os.Bundle
 import android.provider.MediaStore
 import android.provider.Settings
@@ -14,7 +16,13 @@ import androidx.core.content.FileProvider
 import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.text.TextRecognition
 import com.google.mlkit.vision.text.latin.TextRecognizerOptions
+import androidx.work.ExistingWorkPolicy
+import androidx.work.OneTimeWorkRequestBuilder
+import androidx.work.WorkManager
+import androidx.work.workDataOf
+import org.json.JSONArray
 import org.json.JSONObject
+import java.util.concurrent.TimeUnit
 import java.io.File
 import java.net.URL
 
@@ -29,7 +37,11 @@ class MainActivity : Activity() {
         super.onCreate(b)
         val old = Thread.getDefaultUncaughtExceptionHandler()
         Thread.setDefaultUncaughtExceptionHandler { t, e -> log(Log.getStackTraceString(e)); old?.uncaughtException(t, e) }
+        window.statusBarColor = Color.parseColor("#14100A")
+        window.decorView.setBackgroundColor(Color.parseColor("#14100A"))
+        if (Build.VERSION.SDK_INT >= 33) requestPermissions(arrayOf("android.permission.POST_NOTIFICATIONS"), 9)
         web = WebView(this)
+        web.setBackgroundColor(Color.parseColor("#14100A"))
         web.settings.javaScriptEnabled = true
         web.settings.domStorageEnabled = true
         web.webViewClient = object : WebViewClient() {
@@ -73,6 +85,21 @@ class MainActivity : Activity() {
                 } catch (e: Exception) { log("update $e"); js("onUpd('التحديث فشل، انسخ تقرير الأخطاء وابعته')") }
             }.start()
         }
+        @JavascriptInterface fun schedule(j: String) {
+            try {
+                val wm = WorkManager.getInstance(applicationContext)
+                wm.cancelAllWorkByTag("al")
+                val a = JSONArray(j)
+                for (i in 0 until a.length()) {
+                    val o = a.getJSONObject(i)
+                    val d = o.getLong("at") - System.currentTimeMillis()
+                    if (d <= 0) continue
+                    wm.enqueueUniqueWork("a" + o.getString("id"), ExistingWorkPolicy.REPLACE,
+                        OneTimeWorkRequestBuilder<AlertWorker>().setInitialDelay(d, TimeUnit.MILLISECONDS).addTag("al")
+                            .setInputData(workDataOf("t" to o.getString("title"), "x" to o.getString("text"), "i" to i)).build())
+                }
+            } catch (e: Exception) { log("sched $e") }
+        }
         @JavascriptInterface fun scan() {
             runOnUiThread {
                 val f = File(cacheDir, "meter.jpg")
@@ -80,6 +107,11 @@ class MainActivity : Activity() {
                     .addFlags(Intent.FLAG_GRANT_WRITE_URI_PERMISSION or Intent.FLAG_GRANT_READ_URI_PERMISSION), 7)
             }
         }
+    }
+
+    @Deprecated("back")
+    override fun onBackPressed() {
+        web.evaluateJavascript("back()") { if (it != "true") super@MainActivity.onBackPressed() }
     }
 
     override fun onActivityResult(rq: Int, rs: Int, d: Intent?) {

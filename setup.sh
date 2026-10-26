@@ -26,11 +26,7 @@ git push -u origin main
 sleep 12
 ID=$(gh run list -R $RP -L 1 --json databaseId -q '.[0].databaseId')
 if gh run watch $ID -R $RP --exit-status; then
-  rm -rf out; gh run download $ID -R $RP -n shariha-apk -D out
-  mkdir -p ~/storage/downloads 2>/dev/null || true
-  cp out/shariha.apk ~/storage/downloads/shariha.apk 2>/dev/null || cp out/shariha.apk ~/shariha.apk
-  echo ">> خلص. الملف: ~/storage/downloads/shariha.apk"
-  termux-open out/shariha.apk 2>/dev/null || true
+  echo ">> البناء نجح والإصدار اتنشر. افتح التطبيق > الإعدادات > حدّث التطبيق"
 else
   gh run view $ID -R $RP --log-failed > errors.txt 2>&1 || true
   tail -n 60 errors.txt
