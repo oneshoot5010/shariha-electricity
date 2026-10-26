@@ -85,10 +85,6 @@ class MainActivity : Activity() {
                 } catch (e: Exception) { log("update $e"); js("onUpd('التحديث فشل، انسخ تقرير الأخطاء وابعته')") }
             }.start()
         }
-        @JavascriptInterface fun widget(b: Double, e: Double) {
-            getSharedPreferences("w", MODE_PRIVATE).edit().putFloat("b", b.toFloat()).putFloat("e", e.toFloat()).putLong("t", System.currentTimeMillis()).apply()
-            ShWidget.refresh(applicationContext)
-        }
         @JavascriptInterface fun schedule(j: String) {
             try {
                 val wm = WorkManager.getInstance(applicationContext)
