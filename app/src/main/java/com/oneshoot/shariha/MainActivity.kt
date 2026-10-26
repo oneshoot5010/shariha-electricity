@@ -37,11 +37,11 @@ class MainActivity : Activity() {
         super.onCreate(b)
         val old = Thread.getDefaultUncaughtExceptionHandler()
         Thread.setDefaultUncaughtExceptionHandler { t, e -> log(Log.getStackTraceString(e)); old?.uncaughtException(t, e) }
-        window.statusBarColor = Color.parseColor("#14100A")
-        window.decorView.setBackgroundColor(Color.parseColor("#14100A"))
+        window.statusBarColor = Color.parseColor("#000000")
+        window.decorView.setBackgroundColor(Color.parseColor("#000000"))
         if (Build.VERSION.SDK_INT >= 33) requestPermissions(arrayOf("android.permission.POST_NOTIFICATIONS"), 9)
         web = WebView(this)
-        web.setBackgroundColor(Color.parseColor("#14100A"))
+        web.setBackgroundColor(Color.parseColor("#000000"))
         web.settings.javaScriptEnabled = true
         web.settings.domStorageEnabled = true
         web.webViewClient = object : WebViewClient() {
@@ -85,6 +85,10 @@ class MainActivity : Activity() {
                 } catch (e: Exception) { log("update $e"); js("onUpd('التحديث فشل، انسخ تقرير الأخطاء وابعته')") }
             }.start()
         }
+        @JavascriptInterface fun widget(b: Double, e: Double) {
+            getSharedPreferences("w", MODE_PRIVATE).edit().putFloat("b", b.toFloat()).putFloat("e", e.toFloat()).putLong("t", System.currentTimeMillis()).apply()
+            ShWidget.refresh(applicationContext)
+        }
         @JavascriptInterface fun schedule(j: String) {
             try {
                 val wm = WorkManager.getInstance(applicationContext)
@@ -99,6 +103,10 @@ class MainActivity : Activity() {
                             .setInputData(workDataOf("t" to o.getString("title"), "x" to o.getString("text"), "i" to i)).build())
                 }
             } catch (e: Exception) { log("sched $e") }
+        }
+        @JavascriptInterface fun widget(b: Double, e: Double) {
+            getSharedPreferences("w", 0).edit().putFloat("b", b.toFloat()).putFloat("e", e.toFloat()).putLong("t", System.currentTimeMillis()).apply()
+            Widget.refresh(applicationContext)
         }
         @JavascriptInterface fun scan() {
             runOnUiThread {
